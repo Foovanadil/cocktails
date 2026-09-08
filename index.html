@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cocktail Book</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    background: #16181d;
+    color: #eee;
+    padding-bottom: 40px;
+  }
+  header {
+    padding: 16px;
+    background: #1f232b;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #333;
+  }
+  h1 { margin: 0 0 12px 0; font-size: 20px; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #26292f;
+    color: #eee;
+    font-size: 16px;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-top: 12px;
+    padding-bottom: 4px;
+  }
+  .filter-tab {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border-radius: 16px;
+    background: #26292f;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .filter-tab.active { background: #6b4fa0; color: #fff; border-color: #6b4fa0; }
+  .tag-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .tag-pill {
+    padding: 6px 12px;
+    border-radius: 14px;
+    background: #26292f;
+    border: 1px solid #444;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tag-pill.active { background: #a0522d; color: #fff; border-color: #a0522d; }
+  .active-filters {
+    padding: 0 16px;
+    font-size: 13px;
+    color: #999;
+  }
+  .clear-btn {
+    color: #d98;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  #results { padding: 8px 16px; }
+  .cocktail-card {
+    background: #1f232b;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #2c2f36;
+  }
+  .cocktail-name { font-size: 17px; font-weight: 600; margin: 0 0 4px 0; }
+  .cocktail-tags { font-size: 12px; color: #999; margin-bottom: 8px; }
+  .cocktail-tags span { margin-right: 8px; }
+  .cocktail-detail { display: none; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
+  .cocktail-detail.open { display: block; }
+  .cocktail-detail ul { margin: 4px 0 8px 18px; padding: 0; }
+  .cocktail-detail p { margin: 4px 0; }
+  .label { color: #d9a55a; font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  .no-results { color: #888; text-align: center; padding: 40px 20px; }
+  .count { color: #888; font-size: 13px; padding: 0 16px 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍸 Cocktail Book</h1>
+  <input type="text" id="searchBox" placeholder="Search by name or ingredient...">
+  <div class="filter-tabs" id="filterTabs">
+    <div class="filter-tab active" data-mode="base_spirit">Base Spirit</div>
+    <div class="filter-tab" data-mode="liqueurs">Liqueur</div>
+    <div class="filter-tab" data-mode="method">Method</div>
+    <div class="filter-tab" data-mode="season">Season</div>
+    <div class="filter-tab" data-mode="category">Category</div>
+  </div>
+</header>
+
+<div class="tag-grid" id="tagGrid"></div>
+<div class="active-filters" id="activeFilters"></div>
+<div class="count" id="resultCount"></div>
+<div id="results"></div>
+
+<script src="cocktails.json.js"></script>
+<script>
+// If cocktails.json.js doesn't exist, we load cocktails.json via fetch (works fine on a hosted page)
+let COCKTAILS = window.COCKTAILS_DATA || null;
+
+let currentMode = "base_spirit";
+let activeTag = null;
+let searchTerm = "";
+
+function init(data) {
+  COCKTAILS = data;
+  renderTags();
+  renderResults();
+}
+
+fetch('cocktails.json')
+  .then(r => r.json())
+  .then(data => init(data))
+  .catch(err => {
+    document.getElementById('results').innerHTML =
+      '<div class="no-results">Could not load cocktails.json. Make sure it is in the same folder as this page.</div>';
+  });
+
+document.querySelectorAll('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentMode = tab.dataset.mode;
+    activeTag = null;
+    renderTags();
+    renderResults();
+  });
+});
+
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  searchTerm = e.target.value.toLowerCase();
+  renderResults();
+});
+
+function getAllTagsForMode(mode) {
+  const set = new Set();
+  COCKTAILS.forEach(c => {
+    const val = c[mode];
+    if (Array.isArray(val)) {
+      val.forEach(v => { if (v && v.trim()) set.add(v); });
+    }
+  });
+  return Array.from(set).sort();
+}
+
+function renderTags() {
+  const tags = getAllTagsForMode(currentMode);
+  const grid = document.getElementById('tagGrid');
+  grid.innerHTML = '';
+  tags.forEach(tag => {
+    const pill = document.createElement('div');
+    pill.className = 'tag-pill' + (activeTag === tag ? ' active' : '');
+    pill.textContent = tag;
+    pill.addEventListener('click', () => {
+      activeTag = (activeTag === tag) ? null : tag;
+      renderTags();
+      renderResults();
+    });
+    grid.appendChild(pill);
+  });
+  renderActiveFilters();
+}
+
+function renderActiveFilters() {
+  const el = document.getElementById('activeFilters');
+  if (activeTag) {
+    el.innerHTML = `Filtering by <strong>${activeTag}</strong><span class="clear-btn" onclick="clearFilter()">clear</span>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function clearFilter() {
+  activeTag = null;
+  renderTags();
+  renderResults();
+}
+
+function matchesSearch(c) {
+  if (!searchTerm) return true;
+  const haystack = [
+    c.name,
+    ...(c.ingredients || []),
+    ...(c.base_spirit || []),
+    ...(c.liqueurs || []),
+    ...(c.category || [])
+  ].join(' ').toLowerCase();
+  return haystack.includes(searchTerm);
+}
+
+function matchesTag(c) {
+  if (!activeTag) return true;
+  const val = c[currentMode];
+  return Array.isArray(val) && val.includes(activeTag);
+}
+
+function renderResults() {
+  const filtered = COCKTAILS.filter(c => matchesTag(c) && matchesSearch(c))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  document.getElementById('resultCount').textContent =
+    `${filtered.length} cocktail${filtered.length !== 1 ? 's' : ''}`;
+
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="no-results">No cocktails match. Try clearing filters.</div>';
+    return;
+  }
+
+  filtered.forEach((c, idx) => {
+    const card = document.createElement('div');
+    card.className = 'cocktail-card';
+
+    const tagsLine = [
+      ...(c.base_spirit || []),
+      ...(c.liqueurs || []),
+      ...(c.season || [])
+    ].join(' · ');
+
+    card.innerHTML = `
+      <div class="cocktail-name">${c.name}</div>
+      <div class="cocktail-tags">${tagsLine}</div>
+      <div class="cocktail-detail" id="detail-${idx}">
+        <p><span class="label">Glassware:</span> ${c.glassware || 'N/A'}</p>
+        <p><span class="label">Ingredients:</span></p>
+        <ul>${(c.ingredients || []).map(i => `<li>${i}</li>`).join('')}</ul>
+        <p><span class="label">Instructions:</span> ${c.instructions || ''}</p>
+        <p><span class="label">Garnish:</span> ${c.garnish || 'None specified'}</p>
+        <p><span class="label">Category:</span> ${(c.category || []).join(', ')}</p>
+        <p><span class="label">Method:</span> ${(c.method || []).join(', ')}</p>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      const detail = card.querySelector('.cocktail-detail');
+      detail.classList.toggle('open');
+    });
+
+    container.appendChild(card);
+  });
+}
+</script>
+</body>
+</html>
