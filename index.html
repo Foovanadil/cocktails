@@ -4,28 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cocktail Book</title>
+
 <style>
-  * { box-sizing: border-box; }
-  body {
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     margin: 0;
     background: #16181d;
     color: #eee;
-    padding-bottom: 40px;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
   }
   header {
-    padding: 16px;
+    padding: 12px 12px 8px;
+    padding-top: max(12px, env(safe-area-inset-top));
     background: #1f232b;
     position: sticky;
     top: 0;
     z-index: 10;
     border-bottom: 1px solid #333;
   }
-  h1 { margin: 0 0 12px 0; font-size: 20px; }
+  h1 { margin: 0 0 10px 0; font-size: 18px; }
   input[type="text"] {
     width: 100%;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 12px;
+    border-radius: 10px;
     border: 1px solid #444;
     background: #26292f;
     color: #eee;
@@ -33,69 +35,103 @@
   }
   .filter-tabs {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
-    margin-top: 12px;
-    padding-bottom: 4px;
+    margin-top: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .filter-tabs::-webkit-scrollbar { display: none; }
   .filter-tab {
     flex: 0 0 auto;
-    padding: 6px 12px;
-    border-radius: 16px;
+    padding: 9px 14px;
+    border-radius: 18px;
     background: #26292f;
     border: 1px solid #444;
     color: #ccc;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
   }
   .filter-tab.active { background: #6b4fa0; color: #fff; border-color: #6b4fa0; }
   .tag-grid {
     display: flex;
-    flex-wrap: wrap;
     gap: 8px;
-    padding: 12px 16px;
+    overflow-x: auto;
+    padding: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .tag-grid::-webkit-scrollbar { display: none; }
   .tag-pill {
-    padding: 6px 12px;
-    border-radius: 14px;
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 16px;
     background: #26292f;
     border: 1px solid #444;
     color: #ccc;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
+    white-space: nowrap;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
   }
   .tag-pill.active { background: #a0522d; color: #fff; border-color: #a0522d; }
   .active-filters {
-    padding: 0 16px;
+    padding: 0 12px 8px;
     font-size: 13px;
     color: #999;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
   }
+  .active-chip {
+    background: #3a2f4a;
+    color: #d9b8ff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .active-chip .x { cursor: pointer; font-weight: bold; }
   .clear-btn {
     color: #d98;
     text-decoration: underline;
     cursor: pointer;
-    margin-left: 8px;
   }
-  #results { padding: 8px 16px; }
+  #results { padding: 4px 12px; }
   .cocktail-card {
     background: #1f232b;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     border: 1px solid #2c2f36;
+    cursor: pointer;
   }
+  .cocktail-card:active { background: #24282f; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
   .cocktail-name { font-size: 17px; font-weight: 600; margin: 0 0 4px 0; }
-  .cocktail-tags { font-size: 12px; color: #999; margin-bottom: 8px; }
-  .cocktail-tags span { margin-right: 8px; }
+  .chevron { color: #666; font-size: 18px; transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
+  .chevron.open { transform: rotate(90deg); }
+  .cocktail-tags { font-size: 12px; color: #999; margin-bottom: 0; line-height: 1.5; }
   .cocktail-detail { display: none; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
   .cocktail-detail.open { display: block; }
-  .cocktail-detail ul { margin: 4px 0 8px 18px; padding: 0; }
-  .cocktail-detail p { margin: 4px 0; }
+  .cocktail-detail ul { margin: 4px 0 10px 18px; padding: 0; }
+  .cocktail-detail li { margin-bottom: 3px; }
+  .cocktail-detail p { margin: 6px 0; line-height: 1.4; }
   .label { color: #d9a55a; font-weight: 600; font-size: 12px; text-transform: uppercase; }
   .no-results { color: #888; text-align: center; padding: 40px 20px; }
-  .count { color: #888; font-size: 13px; padding: 0 16px 8px; }
+  .count { color: #888; font-size: 13px; padding: 4px 12px 8px; }
 </style>
+
+
 </head>
 <body>
 
@@ -116,25 +152,16 @@
 <div class="count" id="resultCount"></div>
 <div id="results"></div>
 
-<script src="cocktails.json.js"></script>
 <script>
-// If cocktails.json.js doesn't exist, we load cocktails.json via fetch (works fine on a hosted page)
-let COCKTAILS = window.COCKTAILS_DATA || null;
-
+let COCKTAILS = null;
 let currentMode = "base_spirit";
-let activeTag = null;
+let activeFilters = {}; // { base_spirit: "Bourbon", season: "Autumn" }
 let searchTerm = "";
-
-function init(data) {
-  COCKTAILS = data;
-  renderTags();
-  renderResults();
-}
 
 fetch('cocktails.json')
   .then(r => r.json())
-  .then(data => init(data))
-  .catch(err => {
+  .then(data => { COCKTAILS = data; renderTags(); renderResults(); })
+  .catch(() => {
     document.getElementById('results').innerHTML =
       '<div class="no-results">Could not load cocktails.json. Make sure it is in the same folder as this page.</div>';
   });
@@ -144,9 +171,7 @@ document.querySelectorAll('.filter-tab').forEach(tab => {
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentMode = tab.dataset.mode;
-    activeTag = null;
     renderTags();
-    renderResults();
   });
 });
 
@@ -159,9 +184,7 @@ function getAllTagsForMode(mode) {
   const set = new Set();
   COCKTAILS.forEach(c => {
     const val = c[mode];
-    if (Array.isArray(val)) {
-      val.forEach(v => { if (v && v.trim()) set.add(v); });
-    }
+    if (Array.isArray(val)) val.forEach(v => { if (v && v.trim()) set.add(v); });
   });
   return Array.from(set).sort();
 }
@@ -172,10 +195,15 @@ function renderTags() {
   grid.innerHTML = '';
   tags.forEach(tag => {
     const pill = document.createElement('div');
-    pill.className = 'tag-pill' + (activeTag === tag ? ' active' : '');
+    const isActive = activeFilters[currentMode] === tag;
+    pill.className = 'tag-pill' + (isActive ? ' active' : '');
     pill.textContent = tag;
     pill.addEventListener('click', () => {
-      activeTag = (activeTag === tag) ? null : tag;
+      if (activeFilters[currentMode] === tag) {
+        delete activeFilters[currentMode];
+      } else {
+        activeFilters[currentMode] = tag;
+      }
       renderTags();
       renderResults();
     });
@@ -186,44 +214,43 @@ function renderTags() {
 
 function renderActiveFilters() {
   const el = document.getElementById('activeFilters');
-  if (activeTag) {
-    el.innerHTML = `Filtering by <strong>${activeTag}</strong><span class="clear-btn" onclick="clearFilter()">clear</span>`;
-  } else {
-    el.innerHTML = '';
-  }
+  const keys = Object.keys(activeFilters);
+  if (keys.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = keys.map(mode =>
+    `<span class="active-chip">${activeFilters[mode]}<span class="x" onclick="removeFilter('${mode}')">×</span></span>`
+  ).join('') + `<span class="clear-btn" onclick="clearAllFilters()">clear all</span>`;
 }
 
-function clearFilter() {
-  activeTag = null;
+function removeFilter(mode) {
+  delete activeFilters[mode];
+  renderTags();
+  renderResults();
+}
+
+function clearAllFilters() {
+  activeFilters = {};
   renderTags();
   renderResults();
 }
 
 function matchesSearch(c) {
   if (!searchTerm) return true;
-  const haystack = [
-    c.name,
-    ...(c.ingredients || []),
-    ...(c.base_spirit || []),
-    ...(c.liqueurs || []),
-    ...(c.category || [])
-  ].join(' ').toLowerCase();
+  const haystack = [c.name, ...(c.ingredients||[]), ...(c.base_spirit||[]), ...(c.liqueurs||[]), ...(c.category||[])].join(' ').toLowerCase();
   return haystack.includes(searchTerm);
 }
 
-function matchesTag(c) {
-  if (!activeTag) return true;
-  const val = c[currentMode];
-  return Array.isArray(val) && val.includes(activeTag);
+function matchesAllFilters(c) {
+  return Object.entries(activeFilters).every(([mode, tag]) => {
+    const val = c[mode];
+    return Array.isArray(val) && val.includes(tag);
+  });
 }
 
 function renderResults() {
-  const filtered = COCKTAILS.filter(c => matchesTag(c) && matchesSearch(c))
+  const filtered = COCKTAILS.filter(c => matchesAllFilters(c) && matchesSearch(c))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  document.getElementById('resultCount').textContent =
-    `${filtered.length} cocktail${filtered.length !== 1 ? 's' : ''}`;
-
+  document.getElementById('resultCount').textContent = `${filtered.length} cocktail${filtered.length !== 1 ? 's' : ''}`;
   const container = document.getElementById('results');
   container.innerHTML = '';
 
@@ -235,30 +262,30 @@ function renderResults() {
   filtered.forEach((c, idx) => {
     const card = document.createElement('div');
     card.className = 'cocktail-card';
-
-    const tagsLine = [
-      ...(c.base_spirit || []),
-      ...(c.liqueurs || []),
-      ...(c.season || [])
-    ].join(' · ');
+    const tagsLine = [...(c.base_spirit||[]), ...(c.liqueurs||[]), ...(c.season||[])].join(' · ');
 
     card.innerHTML = `
-      <div class="cocktail-name">${c.name}</div>
-      <div class="cocktail-tags">${tagsLine}</div>
+      <div class="card-top">
+        <div>
+          <div class="cocktail-name">${c.name}</div>
+          <div class="cocktail-tags">${tagsLine}</div>
+        </div>
+        <div class="chevron" id="chev-${idx}">›</div>
+      </div>
       <div class="cocktail-detail" id="detail-${idx}">
         <p><span class="label">Glassware:</span> ${c.glassware || 'N/A'}</p>
         <p><span class="label">Ingredients:</span></p>
-        <ul>${(c.ingredients || []).map(i => `<li>${i}</li>`).join('')}</ul>
+        <ul>${(c.ingredients||[]).map(i => `<li>${i}</li>`).join('')}</ul>
         <p><span class="label">Instructions:</span> ${c.instructions || ''}</p>
         <p><span class="label">Garnish:</span> ${c.garnish || 'None specified'}</p>
-        <p><span class="label">Category:</span> ${(c.category || []).join(', ')}</p>
-        <p><span class="label">Method:</span> ${(c.method || []).join(', ')}</p>
+        <p><span class="label">Category:</span> ${(c.category||[]).join(', ')}</p>
+        <p><span class="label">Method:</span> ${(c.method||[]).join(', ')}</p>
       </div>
     `;
 
     card.addEventListener('click', () => {
-      const detail = card.querySelector('.cocktail-detail');
-      detail.classList.toggle('open');
+      card.querySelector('.cocktail-detail').classList.toggle('open');
+      card.querySelector('.chevron').classList.toggle('open');
     });
 
     container.appendChild(card);
